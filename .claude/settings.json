@@ -1,0 +1,70 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git checkout*)",
+      "Bash(git worktree*)",
+      "Bash(ls *)",
+      "Bash(which *)",
+      "Bash(cat package.json)",
+      "Bash(cat pyproject.toml)",
+      "Bash(cat Cargo.toml)",
+      "Bash(cat CMakeLists.txt)",
+      "Read"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Read(.env*)",
+      "Read(*credentials*)",
+      "Read(*secret*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/bin/bash $HOME/.claude/statusline-command.sh"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash $HOME/.claude/hooks/skill-activation.sh",
+            "statusMessage": "Checking relevant skills..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash $HOME/.claude/hooks/quality-check.sh",
+            "statusMessage": "Running quality checks..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash $HOME/.claude/hooks/quality-check.sh",
+            "statusMessage": "Running quality checks..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  }
+}
