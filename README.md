@@ -1,5 +1,7 @@
 # Claude Code Infrastructure
 
+> 🚧 **Active Development**
+
 Personal Claude Code infrastructure for Python AI development. Skills auto-activate by keyword, quality checks run on every edit, and context persists across sessions — all without manual intervention.
 
 ## Core Automation
@@ -36,12 +38,12 @@ Personal Claude Code infrastructure for Python AI development. Skills auto-activ
 
 Domain-specific guidelines that auto-activate when relevant keywords are detected in your prompt.
 
-| Skill | Triggers | Detail Level | Purpose |
-|-------|----------|:------------:|---------|
-| `ai-engineering` | langchain, langgraph, rag, create_agent, lcel, vectorstore, 멀티에이전트 | **Detailed** | LangChain v1 breaking changes, middleware system, LangGraph StateGraph/Functional API |
-| `python-backend` | fastapi, django, flask, sqlalchemy, pydantic, django channels, celery | Concise | FastAPI (Pydantic v2, Annotated DI), Django (async views, Channels WebSocket) |
-| `ml-training` | pytorch, transformers, fine-tuning, quantization, lora, peft, 파인튜닝 | **Detailed** | Transformers v5 breaking changes, PyTorch training patterns, LoRA/PEFT |
-| `skill-developer` | skill 만들, create skill, SKILL.md | Concise | Meta-skill for authoring new skills following Anthropic best practices |
+| Skill             | Triggers                                                                 | Detail Level | Purpose                                                                               |
+| ----------------- | ------------------------------------------------------------------------ | :----------: | ------------------------------------------------------------------------------------- |
+| `ai-engineering`  | langchain, langgraph, rag, create_agent, lcel, vectorstore, 멀티에이전트 | **Detailed** | LangChain v1 breaking changes, middleware system, LangGraph StateGraph/Functional API |
+| `python-backend`  | fastapi, django, flask, sqlalchemy, pydantic, django channels, celery    |   Concise    | FastAPI (Pydantic v2, Annotated DI), Django (async views, Channels WebSocket)         |
+| `ml-training`     | pytorch, transformers, fine-tuning, quantization, lora, peft, 파인튜닝   | **Detailed** | Transformers v5 breaking changes, PyTorch training patterns, LoRA/PEFT                |
+| `skill-developer` | skill 만들, create skill, SKILL.md                                       |   Concise    | Meta-skill for authoring new skills following Anthropic best practices                |
 
 ### Differential Detail
 
@@ -75,13 +77,13 @@ Skills follow a **differential detail** approach — the amount of documentation
 <details>
 <summary><b>LangChain v1</b> — <code>create_agent</code> replaces legacy chains</summary>
 
-| Old (0.x) | New (v1+) |
-|-----------|-----------|
-| `create_react_agent` | `create_agent` |
-| `AgentExecutor` | `create_agent` return value |
-| `LLMChain`, `ConversationalChain` | LCEL or `create_agent` |
-| Manual callbacks | Middleware system |
-| `langchain.chains.*` | `langchain-classic` |
+| Old (0.x)                         | New (v1+)                   |
+| --------------------------------- | --------------------------- |
+| `create_react_agent`              | `create_agent`              |
+| `AgentExecutor`                   | `create_agent` return value |
+| `LLMChain`, `ConversationalChain` | LCEL or `create_agent`      |
+| Manual callbacks                  | Middleware system           |
+| `langchain.chains.*`              | `langchain-classic`         |
 
 New middleware system: `SummarizationMiddleware`, `HumanInTheLoopMiddleware`, `PIIMiddleware`, custom `AgentMiddleware` subclasses.
 
@@ -90,13 +92,13 @@ New middleware system: `SummarizationMiddleware`, `HumanInTheLoopMiddleware`, `P
 <details>
 <summary><b>Transformers v5</b> — Multiple renamed APIs</summary>
 
-| Old | New (v5+) |
-|-----|-----------|
-| `load_in_8bit=True` | `quantization_config=BitsAndBytesConfig(...)` |
-| `tokenizer.as_target_tokenizer()` | `tokenizer(text_target=...)` |
-| `Trainer(tokenizer=tok)` | `Trainer(processing_class=tok)` |
-| `evaluation_strategy="epoch"` | `eval_strategy="epoch"` |
-| Fast/Slow tokenizer distinction | Backend architecture (TokenizersBackend, etc.) |
+| Old                               | New (v5+)                                      |
+| --------------------------------- | ---------------------------------------------- |
+| `load_in_8bit=True`               | `quantization_config=BitsAndBytesConfig(...)`  |
+| `tokenizer.as_target_tokenizer()` | `tokenizer(text_target=...)`                   |
+| `Trainer(tokenizer=tok)`          | `Trainer(processing_class=tok)`                |
+| `evaluation_strategy="epoch"`     | `eval_strategy="epoch"`                        |
+| Fast/Slow tokenizer distinction   | Backend architecture (TokenizersBackend, etc.) |
 
 </details>
 
@@ -104,10 +106,10 @@ New middleware system: `SummarizationMiddleware`, `HumanInTheLoopMiddleware`, `P
 
 Automation scripts triggered by Claude Code events.
 
-| Hook Type | Script | Trigger | Purpose |
-|-----------|--------|---------|---------|
-| `UserPromptSubmit` | `skill-activation.sh` | Every user prompt | Keyword-match → suggest relevant SKILL.md |
-| `PostToolUse` | `quality-check.sh` | `Write` or `Edit` tool | Run lint/type check on changed file |
+| Hook Type          | Script                | Trigger                | Purpose                                   |
+| ------------------ | --------------------- | ---------------------- | ----------------------------------------- |
+| `UserPromptSubmit` | `skill-activation.sh` | Every user prompt      | Keyword-match → suggest relevant SKILL.md |
+| `PostToolUse`      | `quality-check.sh`    | `Write` or `Edit` tool | Run lint/type check on changed file       |
 
 ### Skill Activation Flow
 
@@ -151,20 +153,20 @@ PostToolUse (Write/Edit) → stdin: {tool_input: {file_path: "..."}}
 
 Specialized sub-agents for delegation via Task tool.
 
-| Agent | Role | Output |
-|-------|------|--------|
-| `code-architecture-reviewer` | Architecture analysis, code quality, security, performance review | Issues by severity (Critical/Warning/Suggestion) |
-| `auto-error-resolver` | Error classification, root cause analysis, minimal fix proposal | Root cause + fix + verification steps |
-| `web-research-specialist` | Web search with priority sources (official docs → GitHub → context7 → SO) | Answer + sources + caveats |
+| Agent                        | Role                                                                      | Output                                           |
+| ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
+| `code-architecture-reviewer` | Architecture analysis, code quality, security, performance review         | Issues by severity (Critical/Warning/Suggestion) |
+| `auto-error-resolver`        | Error classification, root cause analysis, minimal fix proposal           | Root cause + fix + verification steps            |
+| `web-research-specialist`    | Web search with priority sources (official docs → GitHub → context7 → SO) | Answer + sources + caveats                       |
 
 ## Commands
 
 Custom slash commands for context management.
 
-| Command | When to Use | Creates |
-|---------|-------------|---------|
-| `/dev-docs` | Start of a task — strategic planning | `dev/active/{task}/plan.md`, `context.md`, `tasks.md` |
-| `/dev-docs-update` | Before session ends or context fills up | Updates existing docs with current state |
+| Command            | When to Use                             | Creates                                               |
+| ------------------ | --------------------------------------- | ----------------------------------------------------- |
+| `/dev-docs`        | Start of a task — strategic planning    | `dev/active/{task}/plan.md`, `context.md`, `tasks.md` |
+| `/dev-docs-update` | Before session ends or context fills up | Updates existing docs with current state              |
 
 ### Context Preservation
 
@@ -283,14 +285,14 @@ npx skillsadd vercel-labs/agent-skills/react-best-practices
 
 ## Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| Framework-specific keywords only | Generic terms ("api", "websocket") cause false activations across stacks |
-| Project-local tools only | Global pip installs pollute environments; `.venv/bin/` ensures isolation |
-| Silent skip on missing tools | Hooks should never block Claude — degrade gracefully |
-| Differential detail in skills | Don't re-document what Claude already knows; focus on post-training changes |
-| 3-file context system | `plan.md` + `context.md` + `tasks.md` = enough to resume any session cold |
-| Language-agnostic global rules | `CLAUDE.md` has no framework-specific content — skills handle that |
+| Decision                         | Rationale                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| Framework-specific keywords only | Generic terms ("api", "websocket") cause false activations across stacks    |
+| Project-local tools only         | Global pip installs pollute environments; `.venv/bin/` ensures isolation    |
+| Silent skip on missing tools     | Hooks should never block Claude — degrade gracefully                        |
+| Differential detail in skills    | Don't re-document what Claude already knows; focus on post-training changes |
+| 3-file context system            | `plan.md` + `context.md` + `tasks.md` = enough to resume any session cold   |
+| Language-agnostic global rules   | `CLAUDE.md` has no framework-specific content — skills handle that          |
 
 ## References
 
