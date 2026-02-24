@@ -8,7 +8,6 @@
 - Always ask for confirmation before committing
 - Commit messages: conventional commits (feat/fix/refactor/test/docs)
 - Use plan mode before large-scale changes
-- Run /dev-docs-update when approaching context limits
 - Ask clarifying questions before implementing ambiguous requirements
 - Never implement based on assumptions
 

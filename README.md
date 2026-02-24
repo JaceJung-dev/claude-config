@@ -161,7 +161,7 @@ Specialized sub-agents for delegation via Task tool.
 
 ## Commands
 
-Custom slash commands for context management.
+Global slash commands (`~/.claude/commands/`) available in any project. Use when working without superpowers (e.g., mid-size tasks, refactoring, feature additions).
 
 | Command            | When to Use                             | Creates                                               |
 | ------------------ | --------------------------------------- | ----------------------------------------------------- |
