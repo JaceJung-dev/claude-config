@@ -39,11 +39,9 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 │       └── notify-*.sh          #   입력 / 종료 / 기록시작 알림
 │
 ├── library/
-│   └── skills/                  # opt-in 스킬 (글로벌 자동 로딩 안 함)
-│       ├── skill-developer/             #   스킬 작성 메타스킬
-│       ├── find-skills/                 #   스킬 탐색 & 설치
-│       ├── vercel-react-best-practices/ #   React/Next 성능
-│       └── web-design-guidelines/       #   UI / 접근성 리뷰
+│   ├── skills/                  # 내가 만든 opt-in 스킬 (글로벌 자동 로딩 안 함)
+│   │   └── skill-developer/             #   스킬 작성 메타스킬
+│   └── skill-lock.json          # 서드파티 스킬 매니페스트 (npx 락파일 스냅샷)
 │
 ├── templates/
 │   └── project/.claude/         # init-project.sh가 복사하는 시작 설정
@@ -51,23 +49,46 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 │
 ├── bin/
 │   ├── deploy-global.sh         # global/* → ~/.claude/ 심볼릭 링크
-│   └── init-project.sh          # 프로젝트 .claude/ 세팅 + 선택 skill 링크
+│   ├── init-project.sh          # 프로젝트 .claude/ 세팅 + 선택 skill 링크
+│   ├── install-skills.sh        # 서드파티 스킬 글로벌 설치 (부트스트랩)
+│   └── sync-skills.sh           # npx 업데이트 후 락파일을 레포로 동기화
 │
 └── docs/superpowers/            # 설계 spec & 구현 plan
 ```
 
-## 스킬 (opt-in 라이브러리)
+## 스킬
 
-`library/skills/`에 보관되는 도메인별 가이드라인입니다. 글로벌에 로딩되지 **않으며**,
-`init-project.sh`로 프로젝트마다 켭니다(아래 참고). Claude Code는 세션 시작 시 프로젝트의
-`.claude/skills/`를 자동 인식합니다.
+스킬은 **출처에 따라 두 가지로 나뉩니다.**
 
-| 스킬                          | 용도                                                |
-| ----------------------------- | --------------------------------------------------- |
-| `skill-developer`             | Anthropic 베스트 프랙티스 기반 스킬 작성 메타스킬   |
-| `find-skills`                 | 에이전트 스킬 탐색 및 설치                          |
-| `vercel-react-best-practices` | React/Next.js 성능 최적화 패턴                      |
-| `web-design-guidelines`       | 웹 인터페이스 가이드라인 기준 UI / 접근성 / UX 리뷰 |
+### 내가 만든 스킬 (vendored, opt-in)
+
+`library/skills/`에 실제 파일로 보관 — 이 레포가 기준(source of truth)입니다. 글로벌에
+로딩되지 **않으며**, `init-project.sh`로 프로젝트마다 켭니다. Claude Code는 세션 시작 시
+프로젝트의 `.claude/skills/`를 자동 인식합니다.
+
+| 스킬              | 용도                                              |
+| ----------------- | ------------------------------------------------- |
+| `skill-developer` | Anthropic 베스트 프랙티스 기반 스킬 작성 메타스킬 |
+
+### 서드파티 스킬 (npx + 락파일)
+
+남이 만든 스킬은 레포에 본체를 복사하지 않습니다. Vercel `skills` CLI(`npx skills`)가
+글로벌로 설치/관리하고, 레포는 버전 기록(`library/skill-lock.json`)과 부트스트랩 스크립트만
+추적합니다. (npm에서 `node_modules`는 안 올리고 `package-lock.json`만 올리는 것과 같음)
+
+| 스킬                          | 출처                     | 용도                                  |
+| ----------------------------- | ------------------------ | ------------------------------------- |
+| `find-skills`                 | vercel-labs/skills       | 에이전트 스킬 탐색 및 설치            |
+| `vercel-react-best-practices` | vercel-labs/agent-skills | React/Next.js 성능 최적화 패턴        |
+| `web-design-guidelines`       | vercel-labs/agent-skills | 웹 인터페이스 가이드라인 기준 UI 리뷰 |
+| `pptx`                        | anthropics/skills        | .pptx 생성 / 편집 / 추출              |
+
+```bash
+bin/install-skills.sh    # 새 머신: 서드파티 스킬 글로벌 설치 (부트스트랩)
+npx skills update -g     # 최신 버전으로 업데이트
+bin/sync-skills.sh       # 업데이트된 락파일을 레포로 동기화 → 커밋
+npx skills list -g       # 설치된 글로벌 스킬 목록
+```
 
 ## 훅 (글로벌)
 
@@ -108,8 +129,9 @@ bin/init-project.sh --skills skill-developer --path ~/Dev/my-project
 ```
 
 `templates/project/.claude/settings.json`로부터 `<프로젝트>/.claude/settings.json`을
-생성하고, 지정한 plugin을 활성화하며, 선택한 skill을 `library/skills/`에서 심볼릭
-링크합니다. 터미널에서 직접 실행하거나, Claude Code에게 실행을 요청해도 됩니다.
+생성하고, 지정한 plugin을 활성화하며, 선택한 skill을 `library/skills/`(내 스킬) 또는
+`~/.agents/skills/`(npx 서드파티)에서 찾아 심볼릭 링크합니다. 터미널에서 직접 실행하거나,
+Claude Code에게 실행을 요청해도 됩니다.
 
 ## 커스터마이징
 
@@ -119,9 +141,10 @@ bin/init-project.sh --skills skill-developer --path ~/Dev/my-project
 2. 작성 가이드는 `skill-developer` 스킬 활용.
 3. 프로젝트에서 `init-project.sh --skills <이름>`으로 활성화.
 
-### 스킬을 다시 글로벌로
+### 내 스킬을 글로벌로
 
-저장소에 모든 스킬이 남아 있으니, 다시 글로벌로 쓰려면 심볼릭만 걸면 됩니다:
+`library/skills/`의 내 스킬을 글로벌로 쓰려면 심볼릭만 걸면 됩니다
+(서드파티 스킬은 `npx skills`가 이미 글로벌로 설치합니다):
 
 ```bash
 ln -s ~/Jace_Dev/017_Claude-config/library/skills/<이름> ~/.claude/skills/<이름>
@@ -133,6 +156,7 @@ ln -s ~/Jace_Dev/017_Claude-config/library/skills/<이름> ~/.claude/skills/<이
 | --------------------------------- | ---------------------------------------------------------------- |
 | 가벼운 글로벌 + 프로젝트별 opt-in | always-on 글로벌이 원치 않을 때도 skill/plugin을 실행시킴        |
 | 저장소 = 기준 (심볼릭)            | 버전관리되는 단일 원본; 저장소 수정이 `~/.claude`로 전파됨       |
+| 서드파티는 매니페스트로 추적      | npx가 상류이므로 본체 vendoring 대신 락파일+부트스트랩만 커밋(작은 diff) |
 | 프로젝트 로컬 도구만 사용         | 전역 설치는 환경을 오염시킴; `.venv/bin/`으로 격리               |
 | 도구 없으면 조용히 skip           | 훅은 절대 Claude를 막지 않고 graceful하게 동작                   |
 | 스킬의 차등 상세도                | Claude가 이미 아는 건 재문서화하지 않고, 학습 이후 변경점에 집중 |

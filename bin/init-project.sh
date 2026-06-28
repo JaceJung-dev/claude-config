@@ -5,6 +5,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIB="$REPO_DIR/library/skills"
+AGENTS_SKILLS="$HOME/.agents/skills"   # npx-managed third-party skills
 TEMPLATE="$REPO_DIR/templates/project/.claude/settings.json"
 
 SKILLS=""; PLUGINS=""; TARGET="$PWD"
@@ -45,9 +46,11 @@ if [ -n "$SKILLS" ]; then
   IFS=',' read -ra SARR <<< "$SKILLS"
   for s in "${SARR[@]}"; do
     if [ -d "$LIB/$s" ]; then
-      ln -sfn "$LIB/$s" "$CLAUDE_DIR/skills/$s"; echo "skill linked: $s"
+      ln -sfn "$LIB/$s" "$CLAUDE_DIR/skills/$s"; echo "skill linked (lib): $s"
+    elif [ -d "$AGENTS_SKILLS/$s" ]; then
+      ln -sfn "$AGENTS_SKILLS/$s" "$CLAUDE_DIR/skills/$s"; echo "skill linked (npx): $s"
     else
-      echo "skill not found in library: $s" >&2
+      echo "skill not found (lib or ~/.agents/skills): $s" >&2
     fi
   done
 fi

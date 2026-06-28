@@ -40,11 +40,9 @@ skills/plugins even when unwanted. The new model separates concerns:
 │       └── notify-*.sh          #   input / stop / record-start notifications
 │
 ├── library/
-│   └── skills/                  # opt-in skills (NOT auto-loaded globally)
-│       ├── skill-developer/             #   meta-skill for authoring skills
-│       ├── find-skills/                 #   skill discovery & install
-│       ├── vercel-react-best-practices/ #   React/Next performance
-│       └── web-design-guidelines/       #   UI / accessibility review
+│   ├── skills/                  # my own opt-in skills (NOT auto-loaded globally)
+│   │   └── skill-developer/             #   meta-skill for authoring skills
+│   └── skill-lock.json          # third-party skill manifest (npx lockfile snapshot)
 │
 ├── templates/
 │   └── project/.claude/         # starter config copied by init-project.sh
@@ -52,23 +50,47 @@ skills/plugins even when unwanted. The new model separates concerns:
 │
 ├── bin/
 │   ├── deploy-global.sh         # symlink global/* → ~/.claude/
-│   └── init-project.sh          # scaffold a project's .claude/ + chosen skills
+│   ├── init-project.sh          # scaffold a project's .claude/ + chosen skills
+│   ├── install-skills.sh        # install third-party skills globally (bootstrap)
+│   └── sync-skills.sh           # capture the lockfile into the repo after updates
 │
 └── docs/superpowers/            # design specs & implementation plans
 ```
 
-## Skills (opt-in library)
+## Skills
 
-Domain-specific guidelines kept in `library/skills/`. They are **not** loaded
-globally — enable them per project with `init-project.sh` (see below). Claude
-Code auto-discovers a project's `.claude/skills/` at session start.
+Skills fall into **two kinds, by origin.**
 
-| Skill                         | Purpose                                                                |
-| ----------------------------- | ---------------------------------------------------------------------- |
-| `skill-developer`             | Meta-skill for authoring new skills following Anthropic best practices |
-| `find-skills`                 | Discover and install agent skills                                      |
-| `vercel-react-best-practices` | React/Next.js performance optimization patterns                        |
-| `web-design-guidelines`       | UI / accessibility / UX review against web interface guidelines        |
+### My own skills (vendored, opt-in)
+
+Kept as real files in `library/skills/` — this repo is the source of truth. They
+are **not** loaded globally; enable them per project with `init-project.sh`.
+Claude Code auto-discovers a project's `.claude/skills/` at session start.
+
+| Skill             | Purpose                                                               |
+| ----------------- | --------------------------------------------------------------------- |
+| `skill-developer` | Meta-skill for authoring new skills following Anthropic best practices |
+
+### Third-party skills (npx + lockfile)
+
+Skills authored by others are **not** copied into the repo. The Vercel `skills`
+CLI (`npx skills`) installs/manages them globally; the repo only tracks a version
+record (`library/skill-lock.json`) and a bootstrap script. (Same idea as not
+committing `node_modules` but committing `package-lock.json`.)
+
+| Skill                         | Source                   | Purpose                                  |
+| ----------------------------- | ------------------------ | ---------------------------------------- |
+| `find-skills`                 | vercel-labs/skills       | Discover and install agent skills        |
+| `vercel-react-best-practices` | vercel-labs/agent-skills | React/Next.js performance patterns       |
+| `web-design-guidelines`       | vercel-labs/agent-skills | UI review against web interface guidelines |
+| `pptx`                        | anthropics/skills        | Create / edit / extract .pptx            |
+
+```bash
+bin/install-skills.sh    # fresh machine: install third-party skills globally
+npx skills update -g     # update to latest versions
+bin/sync-skills.sh       # capture the updated lockfile into the repo → commit
+npx skills list -g       # list installed global skills
+```
 
 ## Hooks (global)
 
@@ -109,8 +131,9 @@ bin/init-project.sh --skills skill-developer --path ~/Dev/my-project
 ```
 
 This creates `<project>/.claude/settings.json` from the template, enables the
-named plugins, and symlinks the chosen skills from `library/skills/`. Run it
-yourself in a terminal, or ask Claude Code to run it for you.
+named plugins, and symlinks the chosen skills from `library/skills/` (my own) or
+`~/.agents/skills/` (npx third-party). Run it yourself in a terminal, or ask
+Claude Code to run it for you.
 
 ## Customization
 
@@ -120,9 +143,10 @@ yourself in a terminal, or ask Claude Code to run it for you.
 2. Use the `skill-developer` skill for authoring guidance.
 3. Enable it in a project with `init-project.sh --skills <name>`.
 
-### Re-enable a skill globally
+### Make one of my skills global
 
-The repo keeps every skill, so to make one global again just symlink it:
+To use a skill from `library/skills/` globally, just symlink it (third-party
+skills are already installed globally by `npx skills`):
 
 ```bash
 ln -s ~/Jace_Dev/017_Claude-config/library/skills/<name> ~/.claude/skills/<name>
@@ -134,6 +158,7 @@ ln -s ~/Jace_Dev/017_Claude-config/library/skills/<name> ~/.claude/skills/<name>
 | -------------------------------- | --------------------------------------------------------------------------- |
 | Lean global + per-project opt-in | Always-on global config fired skills/plugins when unwanted                  |
 | Repo = source of truth (symlink) | One version-controlled copy; edits in repo propagate to `~/.claude`         |
+| Third-party tracked via manifest | npx is upstream, so commit a lockfile + bootstrap instead of vendoring bodies (small diffs) |
 | Project-local tools only         | Global installs pollute environments; `.venv/bin/` ensures isolation        |
 | Silent skip on missing tools     | Hooks should never block Claude — degrade gracefully                        |
 | Differential detail in skills    | Don't re-document what Claude already knows; focus on post-training changes |
