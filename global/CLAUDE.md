@@ -19,7 +19,3 @@
 - Do not add excessive comments/docstrings that don't match the existing style
 - Default docstring style: Google-style
 - Never commit .env or credential files
-
-## Dev Docs
-- Context preservation: use dev/active/[task-name]/ structure
-- 3-file system: plan.md, context.md, tasks.md
