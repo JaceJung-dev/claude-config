@@ -17,7 +17,7 @@ Config and skills are symlinked into `~/.claude`; install and sync are handled b
 │   └── hooks/                   #   event hooks (checks, notifications)
 │
 ├── library/
-│   ├── skills/                  # my own skills (linked globally)
+│   ├── skills/                  # markdown source skills (linked globally)
 │   ├── skill-lock.json          # third-party skill list
 │   └── plugin-lock.json         # plugin list
 │
@@ -44,7 +44,7 @@ Config and skills are symlinked into `~/.claude`; install and sync are handled b
 
 > See **[docs/skills-and-plugins.md](docs/skills-and-plugins.md)** for the full list of installed skills and plugins.
 
-### Markdown skills I author myself
+### Markdown source skills
 
 Kept as real files in `library/skills/`; `install-skills.sh` symlinks them into `~/.claude/skills/`
 so they are **available everywhere** (the same place the third-party ones land).

@@ -17,7 +17,7 @@
 │   └── hooks/                   #   이벤트 훅 (검사·알림)
 │
 ├── library/
-│   ├── skills/                  # 내가 만든 스킬 (글로벌 링크)
+│   ├── skills/                  # markdown 원형 스킬 (글로벌 링크)
 │   ├── skill-lock.json          # 서드파티 스킬 목록
 │   └── plugin-lock.json         # 플러그인 목록
 │
@@ -44,7 +44,7 @@
 
 > 설치된 스킬·플러그인 전체 목록은 **[docs/skills-and-plugins.md](docs/skills-and-plugins.md)** 참고.
 
-### markdown 파일로 직접 작성된 스킬
+### markdown 원형 스킬
 
 `library/skills/`에 실제 파일로 관리하고, `install-skills.sh`가 `~/.claude/skills/`로 심볼릭해
 **어디서나 쓸 수 있게** 합니다(서드파티 스킬이 들어가는 위치와 동일).
