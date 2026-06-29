@@ -7,25 +7,6 @@ opt-in** model. The git repo is the single source of truth; global config is
 deployed to `~/.claude` via symlinks, and each project opts into only the
 skills/plugins it needs.
 
-## Philosophy
-
-Earlier this setup loaded everything globally and always-on, which fired
-skills/plugins even when unwanted. The new model separates concerns:
-
-- **Lean global** — `~/.claude` keeps only language/workflow rules, base settings,
-  the quality-check hook, the statusline, and a few standalone skills.
-- **Repo = source of truth** — every managed file lives in this repo and is
-  symlinked into `~/.claude`. Edits happen here, tracked in git.
-- **Per-project opt-in** — a project enables specific skills/plugins via a single
-  bootstrap command, instead of inheriting a heavy global config.
-
-```
-글로벌(~/.claude)  ──symlink──  repo(017_Claude-config)
-   lean, always-on              source of truth
-        +                              +
-   project .claude/  ◀── init-project.sh ── library / templates
-```
-
 ## Project Structure
 
 ```
@@ -35,6 +16,8 @@ skills/plugins even when unwanted. The new model separates concerns:
 │   ├── settings.json            #   permissions, statusline, quality-check hook,
 │   │                            #     plugins (plannotator, skill-creator)
 │   ├── statusline-command.sh
+│   ├── commands/
+│   │   └── init-project.md      #   /init-project slash command
 │   └── hooks/
 │       ├── quality-check.sh     #   lint/type check on file edit
 │       └── notify-*.sh          #   input / stop / record-start notifications
@@ -51,7 +34,7 @@ skills/plugins even when unwanted. The new model separates concerns:
 ├── bin/
 │   ├── deploy-global.sh         # symlink global/* → ~/.claude/
 │   ├── init-project.sh          # scaffold a project's .claude/ + chosen skills
-│   ├── install-skills.sh        # install third-party skills globally (bootstrap)
+│   ├── install-skills.sh        # install third-party skills from the lockfile (bootstrap)
 │   └── sync-skills.sh           # capture the lockfile into the repo after updates
 │
 └── docs/superpowers/            # design specs & implementation plans
@@ -74,9 +57,9 @@ Claude Code auto-discovers a project's `.claude/skills/` at session start.
 ### Third-party skills (npx + lockfile)
 
 Skills authored by others are **not** copied into the repo. The Vercel `skills`
-CLI (`npx skills`) installs/manages them globally; the repo only tracks a version
-record (`library/skill-lock.json`) and a bootstrap script. (Same idea as not
-committing `node_modules` but committing `package-lock.json`.)
+CLI (`npx skills`) installs/manages them globally; the repo tracks **only the
+lockfile** (`library/skill-lock.json`) as the single source of truth. (Same idea
+as not committing `node_modules` but committing `package-lock.json`.)
 
 | Skill                         | Source                   | Purpose                                  |
 | ----------------------------- | ------------------------ | ---------------------------------------- |
@@ -85,11 +68,18 @@ committing `node_modules` but committing `package-lock.json`.)
 | `web-design-guidelines`       | vercel-labs/agent-skills | UI review against web interface guidelines |
 | `pptx`                        | anthropics/skills        | Create / edit / extract .pptx            |
 
+Add / update / remove via npx, then run `sync-skills.sh` to reflect the lockfile
+into the repo and commit. `install-skills.sh` **derives its commands from the
+lockfile**, so you never edit it by hand.
+
 ```bash
-bin/install-skills.sh    # fresh machine: install third-party skills globally
-npx skills update -g     # update to latest versions
-bin/sync-skills.sh       # capture the updated lockfile into the repo → commit
-npx skills list -g       # list installed global skills
+npx skills add <repo> -g -s <skill> -y && bin/sync-skills.sh    # add     → commit
+npx skills update -g && bin/sync-skills.sh                      # update  → commit
+npx skills remove -g -s <skill> -y && bin/sync-skills.sh        # remove  → commit
+
+bin/install-skills.sh             # fresh machine: install from the lockfile (bootstrap)
+bin/install-skills.sh --dry-run   # preview the generated commands without running them
+npx skills list -g                # list installed global skills
 ```
 
 ## Hooks (global)
@@ -100,14 +90,8 @@ npx skills list -g       # list installed global skills
 | `Notification` / `Stop` / `UserPromptSubmit` | `notify-*.sh`      | permission / stop / prompt | Terminal notifications              |
 
 **Project-local tools only** — `quality-check.sh` looks in `.venv/bin/` and
-`node_modules/.bin/`, never global installs. If tools aren't present, it skips
-silently (never blocks Claude).
-
-```
-PostToolUse (Write/Edit) → quality-check.sh
-    ├── Python (.py)         → .venv/bin/ruff check + .venv/bin/mypy
-    └── TS/JS (.ts/.tsx/...) → node_modules/.bin/eslint + tsc
-```
+`node_modules/.bin/`, never global installs. Python runs `ruff`+`mypy`, TS/JS runs
+`eslint`+`tsc`, and if the tools aren't present it skips silently.
 
 ## Usage
 
@@ -132,8 +116,12 @@ bin/init-project.sh --skills skill-developer --path ~/Dev/my-project
 
 This creates `<project>/.claude/settings.json` from the template, enables the
 named plugins, and symlinks the chosen skills from `library/skills/` (my own) or
-`~/.agents/skills/` (npx third-party). Run it yourself in a terminal, or ask
-Claude Code to run it for you.
+`~/.agents/skills/` (npx third-party).
+
+**Inside Claude Code:** once `bin/deploy-global.sh` has been run, the `/init-project`
+slash command does the same thing. Pass arguments to run directly (`/init-project
+skill-developer superpowers`), or omit them and Claude lists the available
+skills/plugins for you to choose.
 
 ## Customization
 
@@ -161,7 +149,6 @@ ln -s ~/Jace_Dev/017_Claude-config/library/skills/<name> ~/.claude/skills/<name>
 | Third-party tracked via manifest | npx is upstream, so commit a lockfile + bootstrap instead of vendoring bodies (small diffs) |
 | Project-local tools only         | Global installs pollute environments; `.venv/bin/` ensures isolation        |
 | Silent skip on missing tools     | Hooks should never block Claude — degrade gracefully                        |
-| Differential detail in skills    | Don't re-document what Claude already knows; focus on post-training changes |
 
 ## References
 

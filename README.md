@@ -6,25 +6,6 @@
 git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심볼릭 링크로 `~/.claude`에
 배포되고, 각 프로젝트는 필요한 skill/plugin만 선택해서 켭니다.
 
-## 철학
-
-이전 설정은 모든 것을 글로벌에 always-on으로 올려두어, 원치 않을 때도 skill/plugin이
-실행됐습니다. 새 모델은 역할을 분리합니다:
-
-- **가벼운 글로벌** — `~/.claude`에는 언어/워크플로 규칙, 기본 settings, quality-check
-  훅, statusline, 그리고 일부 standalone 스킬만 남깁니다.
-- **저장소 = 기준** — 관리 대상 파일은 모두 이 저장소에 있고 `~/.claude`로 심볼릭
-  링크됩니다. 수정은 여기서 하고, git으로 추적합니다.
-- **프로젝트별 opt-in** — 무거운 글로벌 설정을 상속하는 대신, 부트스트랩 명령 하나로
-  프로젝트마다 원하는 skill/plugin만 켭니다.
-
-```
-글로벌(~/.claude)  ──심볼릭──  저장소(017_Claude-config)
-   가볍게 always-on            기준(source of truth)
-        +                              +
-   프로젝트 .claude/  ◀── init-project.sh ── library / templates
-```
-
 ## 디렉토리 구조
 
 ```
@@ -34,6 +15,8 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 │   ├── settings.json            #   권한, statusline, quality-check 훅,
 │   │                            #     플러그인(plannotator, skill-creator)
 │   ├── statusline-command.sh
+│   ├── commands/
+│   │   └── init-project.md      #   /init-project 슬래시 커맨드
 │   └── hooks/
 │       ├── quality-check.sh     #   편집 시 lint/타입 검사
 │       └── notify-*.sh          #   입력 / 종료 / 기록시작 알림
@@ -50,7 +33,7 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 ├── bin/
 │   ├── deploy-global.sh         # global/* → ~/.claude/ 심볼릭 링크
 │   ├── init-project.sh          # 프로젝트 .claude/ 세팅 + 선택 skill 링크
-│   ├── install-skills.sh        # 서드파티 스킬 글로벌 설치 (부트스트랩)
+│   ├── install-skills.sh        # 락파일 기준 서드파티 스킬 설치 (부트스트랩)
 │   └── sync-skills.sh           # npx 업데이트 후 락파일을 레포로 동기화
 │
 └── docs/superpowers/            # 설계 spec & 구현 plan
@@ -73,7 +56,7 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 ### 서드파티 스킬 (npx + 락파일)
 
 남이 만든 스킬은 레포에 본체를 복사하지 않습니다. Vercel `skills` CLI(`npx skills`)가
-글로벌로 설치/관리하고, 레포는 버전 기록(`library/skill-lock.json`)과 부트스트랩 스크립트만
+글로벌로 설치/관리하고, 레포는 **락파일(`library/skill-lock.json`) 한 곳**만 기준으로
 추적합니다. (npm에서 `node_modules`는 안 올리고 `package-lock.json`만 올리는 것과 같음)
 
 | 스킬                          | 출처                     | 용도                                  |
@@ -83,11 +66,17 @@ git 저장소가 단일 기준(source of truth)이며, 글로벌 설정은 심�
 | `web-design-guidelines`       | vercel-labs/agent-skills | 웹 인터페이스 가이드라인 기준 UI 리뷰 |
 | `pptx`                        | anthropics/skills        | .pptx 생성 / 편집 / 추출              |
 
+추가 · 업데이트 · 삭제 모두 npx로 한 뒤 `sync-skills.sh`로 락파일을 레포에 반영하고
+커밋합니다. `install-skills.sh`는 락파일에서 명령을 **자동 생성**하므로 직접 고칠 일이 없습니다.
+
 ```bash
-bin/install-skills.sh    # 새 머신: 서드파티 스킬 글로벌 설치 (부트스트랩)
-npx skills update -g     # 최신 버전으로 업데이트
-bin/sync-skills.sh       # 업데이트된 락파일을 레포로 동기화 → 커밋
-npx skills list -g       # 설치된 글로벌 스킬 목록
+npx skills add <repo> -g -s <skill> -y && bin/sync-skills.sh    # 추가     → 커밋
+npx skills update -g && bin/sync-skills.sh                      # 업데이트 → 커밋
+npx skills remove -g -s <skill> -y && bin/sync-skills.sh        # 삭제     → 커밋
+
+bin/install-skills.sh             # 새 머신: 락파일 기준 자동 설치 (부트스트랩)
+bin/install-skills.sh --dry-run   # 실행 없이 생성될 명령만 미리보기
+npx skills list -g                # 설치된 글로벌 스킬 목록
 ```
 
 ## 훅 (글로벌)
@@ -98,14 +87,8 @@ npx skills list -g       # 설치된 글로벌 스킬 목록
 | `Notification` / `Stop` / `UserPromptSubmit` | `notify-*.sh`      | 권한 / 종료 / 프롬프트   | 터미널 알림                  |
 
 **프로젝트 로컬 도구만 사용** — `quality-check.sh`는 `.venv/bin/`과
-`node_modules/.bin/`만 봅니다(전역 설치 도구 안 씀). 도구가 없으면 조용히 건너뛰며,
-절대 작업을 막지 않습니다.
-
-```
-PostToolUse (Write/Edit) → quality-check.sh
-    ├── Python (.py)         → .venv/bin/ruff check + .venv/bin/mypy
-    └── TS/JS (.ts/.tsx/...) → node_modules/.bin/eslint + tsc
-```
+`node_modules/.bin/`만 봅니다(전역 설치 도구 안 씀). Python은 `ruff`+`mypy`, TS/JS는
+`eslint`+`tsc`를 돌리고, 도구가 없으면 조용히 건너뜁니다.
 
 ## 사용법
 
@@ -130,8 +113,11 @@ bin/init-project.sh --skills skill-developer --path ~/Dev/my-project
 
 `templates/project/.claude/settings.json`로부터 `<프로젝트>/.claude/settings.json`을
 생성하고, 지정한 plugin을 활성화하며, 선택한 skill을 `library/skills/`(내 스킬) 또는
-`~/.agents/skills/`(npx 서드파티)에서 찾아 심볼릭 링크합니다. 터미널에서 직접 실행하거나,
-Claude Code에게 실행을 요청해도 됩니다.
+`~/.agents/skills/`(npx 서드파티)에서 찾아 심볼릭 링크합니다.
+
+**Claude Code 안에서:** `bin/deploy-global.sh`를 한 번 배포했다면 `/init-project` 슬래시
+커맨드로도 같은 일을 할 수 있습니다. 인자를 주면 바로 실행되고(`/init-project
+skill-developer superpowers`), 안 주면 Claude가 가용 스킬/플러그인을 보여주고 선택을 받습니다.
 
 ## 커스터마이징
 
@@ -159,7 +145,6 @@ ln -s ~/Jace_Dev/017_Claude-config/library/skills/<이름> ~/.claude/skills/<이
 | 서드파티는 매니페스트로 추적      | npx가 상류이므로 본체 vendoring 대신 락파일+부트스트랩만 커밋(작은 diff) |
 | 프로젝트 로컬 도구만 사용         | 전역 설치는 환경을 오염시킴; `.venv/bin/`으로 격리               |
 | 도구 없으면 조용히 skip           | 훅은 절대 Claude를 막지 않고 graceful하게 동작                   |
-| 스킬의 차등 상세도                | Claude가 이미 아는 건 재문서화하지 않고, 학습 이후 변경점에 집중 |
 
 ## 참고
 
