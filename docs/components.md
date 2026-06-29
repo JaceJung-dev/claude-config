@@ -1,10 +1,11 @@
-# 스킬 & 플러그인 목록
+# 구성요소 (스킬 · 플러그인 · 훅)
 
-이 환경에 설치/추적되는 스킬·플러그인 목록입니다. 관리 방식에 따라 나뉩니다.
+이 환경을 이루는 구성요소 목록입니다. 관리 방식에 따라 나뉩니다.
 
 - **markdown 원형 스킬** — `library/skills/`에 원본 보관.
 - **서드파티 스킬** — `npx skills`로 글로벌 설치, `library/skill-lock.json` 목록만 관리.
 - **플러그인** — 마켓플레이스에서 설치, `library/plugin-lock.json`으로 목록만 관리.
+- **훅** — `global/hooks/`의 셸 스크립트, `deploy-global.sh`로 `~/.claude`에 배포.
 
 > 스킬·플러그인을 바꾸면 해당 lock 파일과 아래 표를 같이 갱신하세요.
 
@@ -15,6 +16,7 @@
 | 스킬              | 용도                                              |
 | ----------------- | ------------------------------------------------- |
 | `skill-developer` | Anthropic 베스트 프랙티스 기반 스킬 작성 메타스킬 |
+| `create-readme`   | 프로젝트에 맞는 README.md 작성                     |
 
 ### 서드파티 스킬 (npx)
 
@@ -46,3 +48,16 @@
 | `plannotator`   | backnotprop/plannotator            | 글로벌          | 계획·코드리뷰 annotation UI (`plannotator-*` 스킬 제공)                              |
 | `codex`         | openai/codex-plugin-cc             | 글로벌          | OpenAI Codex 연동 — 코드 리뷰·작업 위임 (`/codex:*` 커맨드, `codex:*` 스킬·에이전트) |
 | `superpowers`   | anthropics/claude-plugins-official | 프로젝트 opt-in | 다목적 워크플로 스킬 번들                                                            |
+
+## 훅 (글로벌)
+
+`global/hooks/`의 셸 스크립트로, `deploy-global.sh`가 `~/.claude`로 심볼릭해 항상 켜집니다.
+
+| 훅 종류                                      | 스크립트           | 트리거                   | 용도                         |
+| -------------------------------------------- | ------------------ | ------------------------ | ---------------------------- |
+| `PostToolUse`                                | `quality-check.sh` | `Write` 또는 `Edit` 도구 | 변경된 파일에 lint/타입 검사 |
+| `Notification` / `Stop` / `UserPromptSubmit` | `notify-*.sh`      | 권한 / 종료 / 프롬프트   | 터미널 알림                  |
+
+> [!NOTE]
+> **프로젝트 로컬 도구만 사용** — `quality-check.sh`는 `.venv/bin/`과 `node_modules/.bin/`만 봅니다(전역 설치 도구 안 씀).
+> Python은 `ruff`+`mypy`, TS/JS는 `eslint`+`tsc`를 돌리고, 도구가 없으면 건너뜁니다.
