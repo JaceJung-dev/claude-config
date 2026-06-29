@@ -28,4 +28,7 @@ link "$SRC/hooks/quality-check.sh" "$DEST/hooks/quality-check.sh"
 for h in "$SRC"/hooks/notify-*.sh; do
   [ -e "$h" ] && link "$h" "$DEST/hooks/$(basename "$h")"
 done
+for c in "$SRC"/commands/*.md; do
+  [ -e "$c" ] && link "$c" "$DEST/commands/$(basename "$c")"
+done
 echo "done."
