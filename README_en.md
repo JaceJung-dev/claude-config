@@ -61,12 +61,7 @@ CLI (`npx skills`) installs/manages them globally; the repo tracks **only the
 lockfile** (`library/skill-lock.json`) as the single source of truth. (Same idea
 as not committing `node_modules` but committing `package-lock.json`.)
 
-| Skill                         | Source                   | Purpose                                  |
-| ----------------------------- | ------------------------ | ---------------------------------------- |
-| `find-skills`                 | vercel-labs/skills       | Discover and install agent skills        |
-| `vercel-react-best-practices` | vercel-labs/agent-skills | React/Next.js performance patterns       |
-| `web-design-guidelines`       | vercel-labs/agent-skills | UI review against web interface guidelines |
-| `pptx`                        | anthropics/skills        | Create / edit / extract .pptx            |
+> See **[docs/skills-and-plugins.md](docs/skills-and-plugins.md)** for the full list of installed skills and plugins.
 
 Add / update / remove via npx, then run `sync-skills.sh` to reflect the lockfile
 into the repo and commit. `install-skills.sh` **derives its commands from the

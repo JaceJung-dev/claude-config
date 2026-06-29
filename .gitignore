@@ -1,2 +1,4 @@
 # AI planning artifacts (brainstorming specs / implementation plans)
-docs/
+docs/*
+# ...except the tracked skills/plugins catalog
+!docs/skills-and-plugins.md
