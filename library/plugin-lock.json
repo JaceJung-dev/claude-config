@@ -1,0 +1,10 @@
+{
+  "marketplaces": {
+    "plannotator": "backnotprop/plannotator"
+  },
+  "plugins": [
+    "plannotator@plannotator",
+    "skill-creator@claude-plugins-official",
+    "superpowers@claude-plugins-official"
+  ]
+}
